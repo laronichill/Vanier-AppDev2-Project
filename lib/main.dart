@@ -176,6 +176,7 @@ Future<void> main() async {
 class TheSquidApp extends StatelessWidget {
   const TheSquidApp({Key? key}) : super(key: key);
 
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -215,7 +216,7 @@ class _MainMenuPageState extends State<MainMenuPage> {
 
   @override
   Widget build(BuildContext context) {
-    final arguments = ModalRoute.of(context)!.settings.arguments;
+    _queryAll(context, dbHelper);
     return Scaffold(
       appBar: CustomAppBar(),
       body: GoogleMap(

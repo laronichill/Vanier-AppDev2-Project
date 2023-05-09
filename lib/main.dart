@@ -3,7 +3,6 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:awesome_notifications/i_awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
@@ -31,7 +30,6 @@ List<Placemark> plcMrkTb = [];
 List<Markers> markersTableOrdered = [];
 List<Marker> markers2Marker = [];
 LatLng currentLatLng = LatLng(45.50, -73.6);
-LatLng SavedLocation = LatLng(45.50, -73.6);
 
 Future<Position> _determinePosition() async {
   bool serviceEnabled;
@@ -60,8 +58,7 @@ Future<Position> _determinePosition() async {
 
 Future<Weather> fetchWeather([String? cu]) async {
   String url =
-      "http://api.weatherapi.com/v1/forecast.json?key=414984562c0a41a6991191302231804&q=Montreal&days=14&aqi=no&alerts=yes";
-      // "http://api.weatherapi.com/v1/forecast.json?key=414984562c0a41a6991191302231804&q=${SavedLocation.latitude},${SavedLocation.longitude}&days=14&aqi=no&alerts=yes";
+      "http://api.weatherapi.com/v1/forecast.json?key=414984562c0a41a6991191302231804&q=${currentLatLng.latitude},${currentLatLng.longitude}&days=14&aqi=no&alerts=yes";
 
   final response = await http.get(Uri.parse(url));
   if (response.statusCode == 200) {
@@ -146,14 +143,19 @@ void _deleteAll(dbHelper) async {
 }
 
 void sendNotification(var title, var body) {
+  AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
+    if (!isAllowed) {
+      AwesomeNotifications().requestPermissionToSendNotifications();
+    }
+  });
   AwesomeNotifications().createNotification(
     content: NotificationContent(
-        displayOnForeground: true,
-        displayOnBackground: true,
-        id: 10,
+        id: 1,
         channelKey: 'basic_channel',
         title: '${title}',
-        body: '${body}'),
+        body: '${body}',
+        category: NotificationCategory.Alarm,
+    ),
   );
 }
 
@@ -162,14 +164,22 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   AwesomeNotifications().initialize(
-    null,
-    [
-      NotificationChannel(
-          channelKey: 'basic_channel',
-          channelName: 'Basic Notifications',
-          channelDescription: 'Notify of date under notifications page')
-    ],
-    debug: true,
+      'resource://drawable/res_app_icon',
+      [
+        NotificationChannel(
+            channelGroupKey: 'basic_channel_group',
+            channelKey: 'basic_channel',
+            channelName: 'Basic notifications',
+            channelDescription: 'Notification channel for weather alerts',
+            defaultColor: Color(0xFF9D50DD),
+            ledColor: Colors.white)
+      ],
+      channelGroups: [
+        NotificationChannelGroup(
+            channelGroupKey: 'basic_channel_group',
+            channelGroupName: 'Basic group')
+      ],
+      debug: true
   );
 
   runApp(TheSquidApp());
@@ -384,7 +394,7 @@ class _LocationsPageState extends State<LocationsPage> {
                                             ],
                                           ),
                                         ),
-                                        /*Padding(
+                                        Padding(
                                           padding: const EdgeInsets.fromLTRB(
                                               20.0, 30.0, 20.0, 20.0),
                                           child: Column(
@@ -392,13 +402,26 @@ class _LocationsPageState extends State<LocationsPage> {
                                                 MainAxisAlignment.start,
                                             children: [
                                               IconButton(
-                                                  onPressed: () {},
+                                                  onPressed: () {
+                                                    currentLatLng = LatLng(
+                                                        double.parse(
+                                                            markersTable[index]
+                                                                .latitude
+                                                                .toString()),
+                                                        double.parse(
+                                                            markersTable[index]
+                                                                .longitude
+                                                                .toString()));
+                                                    Navigator.pushReplacementNamed(
+                                                        context, '/WeatherPage',
+                                                        arguments: null);
+                                                  },
                                                   icon: const Icon(
-                                                      Icons.update_outlined)),
-                                              Text('Update'),
+                                                      Icons.sunny)),
+                                              Text('Weather'),
                                             ],
                                           ),
-                                        ),*/
+                                        ),
                                         Padding(
                                           padding: const EdgeInsets.fromLTRB(
                                               20.0, 30.0, 20.0, 20.0),
@@ -700,11 +723,14 @@ class _weatherAppState extends State<weatherApp> {
         child: FutureBuilder<Weather>(
           future: futureWeather,
           builder: (context, snapshot) {
-
             if (snapshot.hasData) {
+              if (snapshot.data!.alerts.alerts.isNotEmpty) {
+                snapshot.data!.alerts.alerts.forEach((element) {
+                  print(element);
+                  sendNotification(element.event, element.areas);
+                });
+              }
               // Removes all previous hour data before current time.
-              print(snapshot.data!.forecast.forecastday[0].hour);
-
               snapshot.data!.forecast.forecastday[0].hour.removeWhere(
                   (element) => DateFormat('yyyy-MM-dd hh:mm').parse(element.time)
                       .isBefore(DateTime.now().subtract(Duration(hours: 1))));
@@ -984,6 +1010,71 @@ class _weatherAppState extends State<weatherApp> {
                                   "${snapshot.data!.forecast.forecastday[index].day.avgtempC.toString()}°C\n${snapshot.data!.forecast.forecastday[index].day.condition.text}",
                                   style: TextStyle(
                                       fontSize: 20,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(height: 4),
+                      Text(
+                        snapshot.data!.location.name,
+                        style: TextStyle(
+                            fontSize: 32, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        "${DateFormat('yMMMMEEEEd').format(DateFormat('yyyy-MM-dd hh:mm').parse(snapshot.data!.location.localtime))}",
+                        style: TextStyle(fontSize: 24),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Image.network(
+                            '${snapshot.data!.current.condition.icon}',
+                            fit: BoxFit.cover,
+                            width: 96,
+                            height: 96,
+                          ),
+                          Text(
+                            '${snapshot.data!.current.temp_c}°C',
+                            style: TextStyle(
+                              fontSize: 64,
+                              color: Colors.black,
+                              fontFamily: "sans-serif-light",
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                        ],
+                      ),
+                      Expanded(
+                        child: ListView.builder(
+                          scrollDirection: Axis.vertical,
+                          padding: EdgeInsets.all(10),
+                          itemCount: snapshot.data!.alerts.alerts.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            return Card(
+                              child: ListTile(
+                                title: Text(
+                                  "${snapshot.data!.alerts.alerts[index].event}",
+                                  style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: Text(
+                                      "Event: ${snapshot.data!.alerts.alerts[index].event}"
+                                      "\nArea:${snapshot.data!.alerts.alerts[index].areas}"
+                                      "\nUrgency: ${snapshot.data!.alerts.alerts[index].urgency}"
+                                      "\nDescription: \t ${snapshot.data!.alerts.alerts[index].desc}"
+                                    ,
+                                  style: TextStyle(
+                                      fontSize: 16,
                                       fontWeight: FontWeight.bold),
                                 ),
                               ),

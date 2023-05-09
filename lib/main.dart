@@ -381,7 +381,7 @@ class _LocationsPageState extends State<LocationsPage> {
                                             ],
                                           ),
                                         ),
-                                        Padding(
+                                        /*Padding(
                                           padding: const EdgeInsets.fromLTRB(
                                               20.0, 30.0, 20.0, 20.0),
                                           child: Column(
@@ -393,6 +393,24 @@ class _LocationsPageState extends State<LocationsPage> {
                                                   icon: const Icon(
                                                       Icons.update_outlined)),
                                               Text('Update'),
+                                            ],
+                                          ),
+                                        ),*/
+                                        Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                              20.0, 30.0, 20.0, 20.0),
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.start,
+                                            children: [
+                                              IconButton(
+                                                  onPressed: () async {
+                                                    final data = await ClipboardData(text: '${plcMrkTb[index].street}, ${plcMrkTb[index].locality}, ${plcMrkTb[index].administrativeArea} ${plcMrkTb[index].postalCode}');
+                                                    Clipboard.setData(data);
+                                                  },
+                                                  icon: const Icon(
+                                                      Icons.share)),
+                                              Text('Share'),
                                             ],
                                           ),
                                         ),

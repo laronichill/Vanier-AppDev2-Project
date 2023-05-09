@@ -60,7 +60,8 @@ Future<Position> _determinePosition() async {
 
 Future<Weather> fetchWeather([String? cu]) async {
   String url =
-      "http://api.weatherapi.com/v1/forecast.json?key=414984562c0a41a6991191302231804&q=${SavedLocation.latitude},${SavedLocation.longitude}&days=14&aqi=no&alerts=yes";
+      "http://api.weatherapi.com/v1/forecast.json?key=414984562c0a41a6991191302231804&q=Montreal&days=14&aqi=no&alerts=yes";
+      // "http://api.weatherapi.com/v1/forecast.json?key=414984562c0a41a6991191302231804&q=${SavedLocation.latitude},${SavedLocation.longitude}&days=14&aqi=no&alerts=yes";
 
   final response = await http.get(Uri.parse(url));
   if (response.statusCode == 200) {
@@ -155,6 +156,7 @@ void sendNotification(var title, var body) {
         body: '${body}'),
   );
 }
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -698,10 +700,13 @@ class _weatherAppState extends State<weatherApp> {
         child: FutureBuilder<Weather>(
           future: futureWeather,
           builder: (context, snapshot) {
+
             if (snapshot.hasData) {
               // Removes all previous hour data before current time.
+              print(snapshot.data!.forecast.forecastday[0].hour);
+
               snapshot.data!.forecast.forecastday[0].hour.removeWhere(
-                  (element) => DateTime.parse(element.time)
+                  (element) => DateFormat('yyyy-MM-dd hh:mm').parse(element.time)
                       .isBefore(DateTime.now().subtract(Duration(hours: 1))));
               final PageController controller = PageController();
               return PageView(
@@ -723,7 +728,7 @@ class _weatherAppState extends State<weatherApp> {
                                   fontSize: 32, fontWeight: FontWeight.bold),
                             ),
                             Text(
-                              "${DateFormat('yMMMMEEEEd').format(DateTime.parse(snapshot.data!.location.localtime))}",
+                              "${DateFormat('yMMMMEEEEd').format(DateFormat('yyyy-MM-dd hh:mm').parse(snapshot.data!.location.localtime))}",
                               style: TextStyle(fontSize: 24),
                             ),
                             Text(
@@ -936,7 +941,7 @@ class _weatherAppState extends State<weatherApp> {
                             fontSize: 32, fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        "${DateFormat('yMMMMEEEEd').format(DateTime.parse(snapshot.data!.location.localtime))}",
+                        "${DateFormat('yMMMMEEEEd').format(DateFormat('yyyy-MM-dd hh:mm').parse(snapshot.data!.location.localtime))}",
                         style: TextStyle(fontSize: 24),
                       ),
                       Row(

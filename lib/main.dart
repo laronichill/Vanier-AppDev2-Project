@@ -27,10 +27,11 @@ var mainDividerColor = Colors.grey[300];
 var mainColorScheme = Color.fromARGB(255, 0, 120, 120);
 // Lists for MainMenuPage() and LocationsPage()
 List<Markers> markersTable = [];
-List<Placemark> placemarks = [];
+List<Placemark> plcMrkTb = [];
 List<Markers> markersTableOrdered = [];
 List<Marker> markers2Marker = [];
 LatLng currentLatLng = LatLng(45.50, -73.6);
+LatLng SavedLocation = LatLng(45.50, -73.6);
 
 Future<Position> _determinePosition() async {
   bool serviceEnabled;
@@ -59,7 +60,7 @@ Future<Position> _determinePosition() async {
 
 Future<Weather> fetchWeather([String? cu]) async {
   String url =
-      "http://api.weatherapi.com/v1/forecast.json?key=414984562c0a41a6991191302231804&q=${currentLatLng.latitude},${currentLatLng.longitude}&days=14&aqi=no&alerts=yes";
+      "http://api.weatherapi.com/v1/forecast.json?key=414984562c0a41a6991191302231804&q=${SavedLocation.latitude},${SavedLocation.longitude}&days=14&aqi=no&alerts=yes";
 
   final response = await http.get(Uri.parse(url));
   if (response.statusCode == 200) {
@@ -84,7 +85,10 @@ void _queryAll(context, dbHelper) async {
   markersTable.clear();
   allRows.forEach((row) => markersTable.add(Markers.fromMap(row)));
   markers2Marker.clear();
+  plcMrkTb.clear();
   markersTable.forEach((element) async {
+    List<Placemark> placemarks = await placemarkFromCoordinates(element.latitude!,element.longitude!);
+    plcMrkTb.add(placemarks.first);
     markers2Marker.add(
       new Marker(
         markerId: MarkerId(element.title!),
@@ -276,6 +280,7 @@ class _MainMenuPageState extends State<MainMenuPage> {
                     _insert(latLng.latitude, latLng.longitude,
                         areaNameController.text, dbHelper);
                     _queryAll(context, dbHelper);
+
                   });
                   Navigator.pop(context);
                 } else {
@@ -309,10 +314,7 @@ class LocationsPage extends StatefulWidget {
   @override
   State<LocationsPage> createState() => _LocationsPageState();
 }
-Future<Placemark> GetPosition(double? latitude, double? longitude) async {
-  placemarks = await placemarkFromCoordinates(latitude!, longitude!);
-  return placemarks.first;
-}
+
 
 class _LocationsPageState extends State<LocationsPage> {
   final dbHelper = DatabaseHelper.instance;
@@ -331,13 +333,13 @@ class _LocationsPageState extends State<LocationsPage> {
                 padding: EdgeInsets.all(10),
                 itemCount: markersTable.length,
                 itemBuilder: (BuildContext context, int index) {
-                  Placemark newplace = GetPosition(markersTable[index].latitude, markersTable[index].longitude) as Placemark;
                   return Card(
                     child: ListTile(
                         leading: Icon(Icons.notifications),
                         title: Text('${markersTable[index].title}'),
                         subtitle: Text(
-                            '${newplace.street} - ${newplace.administrativeArea}'),
+                            '${plcMrkTb[index].street}, ${plcMrkTb[index].locality}, ${plcMrkTb[index].administrativeArea} ${plcMrkTb[index].postalCode}'
+                        ),
                         onTap: () {
                           showModalBottomSheet<void>(
                               context: context,

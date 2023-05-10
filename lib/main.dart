@@ -594,7 +594,9 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: CustomAppBar(),
       body: Center(
         child: Column(
-          children: [],
+          children: [
+
+          ],
         ),
       ),
       drawer: NavBar(),
@@ -621,19 +623,20 @@ class CustomAppBar extends AppBar {
           ),
           backgroundColor: mainAppColor,
           title: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Icon(
                 Icons.sports_motorsports_outlined,
-                size: 48,
+                size: 64,
                 color: Colors.white,
               ),
               Padding(
-                padding: EdgeInsets.all(2),
+                padding: EdgeInsets.all(4),
                 child: Text(
                   "SquidApp",
                   style: TextStyle(
                       color: Colors.white,
-                      fontSize: 24,
+                      fontSize: 32,
                       fontWeight: FontWeight.bold),
                 ),
               ),
@@ -685,16 +688,14 @@ class NavBar extends StatelessWidget {
                         size: 64,
                         color: Colors.white,
                       ),
-                      Padding(
-                        padding: EdgeInsets.all(2),
-                        child: Text(
+                      Text(
                           "SquidApp",
                           style: TextStyle(
                               color: Colors.white,
                               fontSize: 32,
                               fontWeight: FontWeight.bold),
                         ),
-                      ),
+
                     ],
                   ),
                 ),

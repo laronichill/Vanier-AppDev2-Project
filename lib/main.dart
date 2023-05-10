@@ -142,15 +142,10 @@ void _deleteAll(dbHelper) async {
   final rowsDeleted = await dbHelper.deleteAll();
 }
 
-void sendNotification(var title, var body) {
-  AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
-    if (!isAllowed) {
-      AwesomeNotifications().requestPermissionToSendNotifications();
-    }
-  });
+void sendNotification(var title, var body, var id) {
   AwesomeNotifications().createNotification(
     content: NotificationContent(
-        id: 1,
+        id: id,
         channelKey: 'basic_channel',
         title: '${title}',
         body: '${body}',
@@ -159,25 +154,33 @@ void sendNotification(var title, var body) {
   );
 }
 
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   AwesomeNotifications().initialize(
-      'resource://drawable/res_app_icon',
+    // set the icon to null if you want to use the default app icon
+      null,
       [
         NotificationChannel(
-            channelGroupKey: 'basic_channel_group',
-            channelKey: 'basic_channel',
+            channelGroupKey: 'high_importance_channel',
+            channelKey: 'high_importance_channel',
             channelName: 'Basic notifications',
             channelDescription: 'Notification channel for weather alerts',
             defaultColor: Color(0xFF9D50DD),
-            ledColor: Colors.white)
+            ledColor: Colors.white,
+            importance: NotificationImportance.Max,
+          channelShowBadge: true,
+          onlyAlertOnce: true,
+          playSound: false,
+          criticalAlerts: true,
+          defaultPrivacy: NotificationPrivacy.Private,
+        )
       ],
+      // Channel groups are only visual and are not required
       channelGroups: [
         NotificationChannelGroup(
-            channelGroupKey: 'basic_channel_group',
-            channelGroupName: 'Basic group')
+            channelGroupKey: 'high_importance_channel_group',
+            channelGroupName: 'Group 1')
       ],
       debug: true
   );
@@ -226,6 +229,16 @@ class _MainMenuPageState extends State<MainMenuPage> {
 
   Completer<GoogleMapController> _controller = Completer<GoogleMapController>();
 
+
+  @override
+  void initState() {
+    AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
+      if (!isAllowed) {
+        AwesomeNotifications().requestPermissionToSendNotifications();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     _queryAll(context, dbHelper);
@@ -235,7 +248,7 @@ class _MainMenuPageState extends State<MainMenuPage> {
         mapType: MapType.normal,
         initialCameraPosition: CameraPosition(
           target: currentLatLng,
-          zoom: 13,
+          zoom: 12,
         ),
         myLocationButtonEnabled: false,
         myLocationEnabled: true,
@@ -243,6 +256,7 @@ class _MainMenuPageState extends State<MainMenuPage> {
         mapToolbarEnabled: false,
         onMapCreated: (GoogleMapController controller) {
           _controller.complete(controller);
+
         },
         onLongPress: (LatLng latlng) {
           _insertMarkerDialog(context, latlng);
@@ -666,7 +680,7 @@ class logout extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      sendNotification("TYYY", "<333333");
+                      sendNotification("TYYY", "<333333", -1);
                     },
                     child: Text("No"),
                   ),
@@ -708,7 +722,7 @@ class weatherApp extends StatefulWidget {
 
 class _weatherAppState extends State<weatherApp> {
   late Future<Weather> futureWeather;
-
+  var notificationCounter = 1;
   @override
   void initState() {
     super.initState();
@@ -717,6 +731,7 @@ class _weatherAppState extends State<weatherApp> {
 
   @override
   Widget build(BuildContext context) {
+    notificationCounter = 0;
     return Scaffold(
       appBar: CustomAppBar(),
       body: SafeArea(
@@ -725,9 +740,9 @@ class _weatherAppState extends State<weatherApp> {
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               if (snapshot.data!.alerts.alerts.isNotEmpty) {
+
                 snapshot.data!.alerts.alerts.forEach((element) {
-                  print(element);
-                  sendNotification(element.event, element.areas);
+                  sendNotification(element.event, element.areas, notificationCounter++);
                 });
               }
               // Removes all previous hour data before current time.

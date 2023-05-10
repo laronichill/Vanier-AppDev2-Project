@@ -78,7 +78,7 @@ void _insert(latitude, longitude, title, dbHelper) async {
   final id = await dbHelper.insert(markers);
 }
 
-void _queryAll(context, dbHelper) async {
+void _queryAll(dbHelper) async {
   final allRows = await dbHelper.queryAllRows();
   markersTable.clear();
   allRows.forEach((row) => markersTable.add(Markers.fromMap(row)));
@@ -94,29 +94,6 @@ void _queryAll(context, dbHelper) async {
         infoWindow: InfoWindow(title: '${element.title}'),
         draggable: false,
         onTap: () {
-          /*
-          showModalBottomSheet<void>(
-              context: context,
-              builder: (BuildContext context) {
-                return SizedBox(
-                  height: 150,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20.0, 30.0, 20.0, 20.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        IconButton(onPressed: () {
-                          _query(element.id,dbHelper);
-                          _delete(element.id, dbHelper);
-                          _queryAll(context, dbHelper);
-                          Navigator.pushReplacementNamed(context, '/', arguments: null);
-                        }, icon: const Icon(Icons.delete_outline)),
-                        Text('Trash'),
-                      ],
-                    ),
-                  ),
-                );
-              });*/
         },
       ),
     );
@@ -156,7 +133,8 @@ void sendNotification(var title, var body, var id) {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  final dbHelper = DatabaseHelper.instance;
+  _queryAll(dbHelper);
   AwesomeNotifications().initialize(
     // set the icon to null if you want to use the default app icon
       null,
@@ -241,7 +219,6 @@ class _MainMenuPageState extends State<MainMenuPage> {
 
   @override
   Widget build(BuildContext context) {
-    _queryAll(context, dbHelper);
     return Scaffold(
       appBar: CustomAppBar(),
       body: GoogleMap(
@@ -306,8 +283,7 @@ class _MainMenuPageState extends State<MainMenuPage> {
                   setState(() {
                     _insert(latLng.latitude, latLng.longitude,
                         areaNameController.text, dbHelper);
-                    _queryAll(context, dbHelper);
-
+                    _queryAll(dbHelper);
                   });
                   Navigator.pop(context);
                 } else {
@@ -348,7 +324,7 @@ class _LocationsPageState extends State<LocationsPage> {
 
   @override
   Widget build(BuildContext context) {
-    _queryAll(context, dbHelper);
+    _queryAll(dbHelper);
     return Scaffold(
       appBar: CustomAppBar(),
       body: Center(
@@ -471,7 +447,7 @@ class _LocationsPageState extends State<LocationsPage> {
                                                             .id
                                                             ?.toInt(),
                                                         dbHelper);
-                                                    _queryAll(context, dbHelper);
+                                                    _queryAll(dbHelper);
                                                     Navigator.pushReplacementNamed(context,'/LocationsPage', arguments: null);
                                                   },
                                                   icon: const Icon(
@@ -493,7 +469,7 @@ class _LocationsPageState extends State<LocationsPage> {
             onPressed: () {
               setState(() {
                 _deleteAll(dbHelper);
-                _queryAll(context, dbHelper);
+                _queryAll(dbHelper);
               });
               Navigator.pushReplacementNamed(context, '/', arguments: null);
             },

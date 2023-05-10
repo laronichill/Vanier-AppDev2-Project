@@ -38,7 +38,7 @@ dependencies:
   decimal: ^2.3.2
   intl: ^0.17.0
   awesome_notifications: ^0.7.4+1
-  google_maps_flutter: ^2.2.5
+  google_maps_flutter: ^2.2.6
   geolocator: ^9.0.2
   sqflite:
 

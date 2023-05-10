@@ -30,6 +30,7 @@ List<Placemark> plcMrkTb = [];
 List<Markers> markersTableOrdered = [];
 List<Marker> markers2Marker = [];
 LatLng currentLatLng = LatLng(45.50, -73.6);
+double zoomAmount = 12.0;
 
 Future<Position> _determinePosition() async {
   bool serviceEnabled;
@@ -85,7 +86,8 @@ void _queryAll(dbHelper) async {
   markers2Marker.clear();
   plcMrkTb.clear();
   markersTable.forEach((element) async {
-    List<Placemark> placemarks = await placemarkFromCoordinates(element.latitude!,element.longitude!);
+    List<Placemark> placemarks =
+        await placemarkFromCoordinates(element.latitude!, element.longitude!);
     plcMrkTb.add(placemarks.first);
     markers2Marker.add(
       new Marker(
@@ -93,8 +95,7 @@ void _queryAll(dbHelper) async {
         position: LatLng(element.latitude!, element.longitude!),
         infoWindow: InfoWindow(title: '${element.title}'),
         draggable: false,
-        onTap: () {
-        },
+        onTap: () {},
       ),
     );
   });
@@ -122,11 +123,11 @@ void _deleteAll(dbHelper) async {
 void sendNotification(var title, var body, var id) {
   AwesomeNotifications().createNotification(
     content: NotificationContent(
-        id: id,
-        channelKey: 'basic_channel',
-        title: '${title}',
-        body: '${body}',
-        category: NotificationCategory.Alarm,
+      id: id,
+      channelKey: 'basic_channel',
+      title: '${title}',
+      body: '${body}',
+      category: NotificationCategory.Alarm,
     ),
   );
 }
@@ -136,17 +137,17 @@ Future<void> main() async {
   final dbHelper = DatabaseHelper.instance;
   _queryAll(dbHelper);
   AwesomeNotifications().initialize(
-    // set the icon to null if you want to use the default app icon
+      // set the icon to null if you want to use the default app icon
       null,
       [
         NotificationChannel(
-            channelGroupKey: 'high_importance_channel',
-            channelKey: 'high_importance_channel',
-            channelName: 'Basic notifications',
-            channelDescription: 'Notification channel for weather alerts',
-            defaultColor: Color(0xFF9D50DD),
-            ledColor: Colors.white,
-            importance: NotificationImportance.Max,
+          channelGroupKey: 'high_importance_channel',
+          channelKey: 'high_importance_channel',
+          channelName: 'Basic notifications',
+          channelDescription: 'Notification channel for weather alerts',
+          defaultColor: Color(0xFF9D50DD),
+          ledColor: Colors.white,
+          importance: NotificationImportance.Max,
           channelShowBadge: true,
           onlyAlertOnce: true,
           playSound: false,
@@ -160,15 +161,13 @@ Future<void> main() async {
             channelGroupKey: 'high_importance_channel_group',
             channelGroupName: 'Group 1')
       ],
-      debug: true
-  );
+      debug: true);
 
   runApp(TheSquidApp());
 }
 
 class TheSquidApp extends StatelessWidget {
   const TheSquidApp({Key? key}) : super(key: key);
-
 
   @override
   Widget build(BuildContext context) {
@@ -204,9 +203,7 @@ class _MainMenuPageState extends State<MainMenuPage> {
   final dbHelper = DatabaseHelper.instance;
   TextEditingController areaNameController = TextEditingController();
   TextEditingController searchBarController = TextEditingController();
-
   Completer<GoogleMapController> _controller = Completer<GoogleMapController>();
-
 
   @override
   void initState() {
@@ -221,29 +218,65 @@ class _MainMenuPageState extends State<MainMenuPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar(),
-      body: GoogleMap(
-        mapType: MapType.normal,
-        initialCameraPosition: CameraPosition(
-          target: currentLatLng,
-          zoom: 12,
-        ),
-        myLocationButtonEnabled: false,
-        myLocationEnabled: true,
-        compassEnabled: true,
-        mapToolbarEnabled: false,
-        onMapCreated: (GoogleMapController controller) {
-          _controller.complete(controller);
-
-        },
-        onLongPress: (LatLng latlng) {
-          _insertMarkerDialog(context, latlng);
-        },
-        onCameraMove: (CameraPosition position) {
-          currentLatLng =
-              LatLng(position.target.latitude, position.target.longitude);
-        },
-        markers: Set<Marker>.of(markers2Marker),
-        zoomControlsEnabled: false,
+      body: Stack(
+        children: [
+          GoogleMap(
+            mapType: MapType.normal,
+            initialCameraPosition: CameraPosition(
+              target: currentLatLng,
+              zoom: zoomAmount,
+            ),
+            myLocationButtonEnabled: false,
+            myLocationEnabled: true,
+            compassEnabled: true,
+            mapToolbarEnabled: false,
+            onMapCreated: (GoogleMapController controller) {
+              _controller.complete(controller);
+            },
+            onLongPress: (LatLng latlng) {
+              _insertMarkerDialog(context, latlng);
+            },
+            onCameraMove: (CameraPosition position) {
+              zoomAmount = position.zoom;
+              currentLatLng =
+                  LatLng(position.target.latitude, position.target.longitude);
+            },
+            markers: Set<Marker>.of(markers2Marker),
+            zoomControlsEnabled: false,
+          ),
+          Positioned(
+            top: 10,
+            right: 15,
+            left: 15,
+            child: Container(
+              color: Colors.white,
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: TextField(
+                      controller: searchBarController,
+                      cursorColor: Colors.black,
+                      keyboardType: TextInputType.streetAddress,
+                      decoration: InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 15),
+                          hintText: "Search..."),
+                    ),
+                  ),
+                  IconButton(
+                    splashColor: Colors.grey,
+                    icon: Icon(Icons.send),
+                    onPressed: () async {
+                      List<Location> locations =
+                          await locationFromAddress(searchBarController.text);
+                      _goToTheAdress(locations.first);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
       drawer: NavBar(),
       floatingActionButton: FloatingActionButton(
@@ -253,10 +286,17 @@ class _MainMenuPageState extends State<MainMenuPage> {
           });
         },
         mini: false,
-        child: Icon(Icons.my_location),
+        child: Icon(Icons.my_location, color: Colors.white),
         backgroundColor: mainAppColor,
       ),
     );
+  }
+
+  Future<void> _goToTheAdress(Location location) async {
+    final GoogleMapController controller = await _controller.future;
+    CameraPosition _kPosition = CameraPosition(
+        target: LatLng(location.latitude, location.longitude), zoom: 14.5);
+    controller.animateCamera(CameraUpdate.newCameraPosition(_kPosition));
   }
 
   Future<void> _insertMarkerDialog(BuildContext context, LatLng latLng) async {
@@ -318,10 +358,9 @@ class LocationsPage extends StatefulWidget {
   State<LocationsPage> createState() => _LocationsPageState();
 }
 
-
 class _LocationsPageState extends State<LocationsPage> {
   final dbHelper = DatabaseHelper.instance;
-
+  TextEditingController locationNameController = TextEditingController();
   @override
   Widget build(BuildContext context) {
     _queryAll(dbHelper);
@@ -341,8 +380,7 @@ class _LocationsPageState extends State<LocationsPage> {
                         leading: Icon(Icons.notifications),
                         title: Text('${markersTable[index].title}'),
                         subtitle: Text(
-                            '${plcMrkTb[index].street}, ${plcMrkTb[index].locality}, ${plcMrkTb[index].administrativeArea} ${plcMrkTb[index].postalCode}'
-                        ),
+                            '${plcMrkTb[index].street}, ${plcMrkTb[index].locality}, ${plcMrkTb[index].administrativeArea} ${plcMrkTb[index].postalCode}'),
                         onTap: () {
                           showModalBottomSheet<void>(
                               context: context,
@@ -402,13 +440,66 @@ class _LocationsPageState extends State<LocationsPage> {
                                                             markersTable[index]
                                                                 .longitude
                                                                 .toString()));
-                                                    Navigator.pushReplacementNamed(
-                                                        context, '/WeatherPage',
-                                                        arguments: null);
+                                                    Navigator
+                                                        .pushReplacementNamed(
+                                                            context,
+                                                            '/WeatherPage',
+                                                            arguments: null);
                                                   },
-                                                  icon: const Icon(
-                                                      Icons.sunny)),
+                                                  icon:
+                                                      const Icon(Icons.sunny)),
                                               Text('Weather'),
+                                            ],
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                              20.0, 30.0, 20.0, 20.0),
+                                          child: Column(
+                                            mainAxisAlignment:
+                                            MainAxisAlignment.start,
+                                            children: [
+                                              IconButton(
+                                                  onPressed: () async {
+                                                    return showDialog(
+                                                      context: context,
+                                                      builder: (BuildContext context) {
+                                                        locationNameController.text = markersTable[index].title.toString();
+                                                        return AlertDialog(
+                                                          title: Text('Update Location Name'),
+                                                          content: TextField(
+                                                            decoration: InputDecoration(hintText: "Name Of Location"),
+
+                                                            controller: locationNameController,
+                                                          ),
+                                                          actions: <Widget>[
+                                                            ElevatedButton(
+                                                              child: Text('CANCEL'),
+                                                              onPressed: () {
+                                                                Navigator.pop(context);
+                                                              },
+                                                            ),
+                                                            ElevatedButton(
+                                                              child: Text('OK'),
+                                                              onPressed: () {
+                                                                if (locationNameController.text.isNotEmpty) {
+                                                                  _update(markersTable[index].id, markersTable[index].latitude, markersTable[index].longitude, locationNameController.text, dbHelper);
+                                                                  Navigator.pop(context);
+                                                                } else {
+                                                                  SnackBar(
+                                                                    content: Text('No name given!'),
+                                                                  );
+                                                                }
+                                                              },
+                                                            ),
+                                                          ],
+                                                        );
+                                                      },
+                                                    );
+                                                  },
+                                                  icon:
+                                                  const Icon(Icons.update)),
+                                              Text('Update'),
                                             ],
                                           ),
                                         ),
@@ -421,11 +512,14 @@ class _LocationsPageState extends State<LocationsPage> {
                                             children: [
                                               IconButton(
                                                   onPressed: () async {
-                                                    final data = await ClipboardData(text: '${plcMrkTb[index].street}, ${plcMrkTb[index].locality}, ${plcMrkTb[index].administrativeArea} ${plcMrkTb[index].postalCode}');
+                                                    final data =
+                                                        await ClipboardData(
+                                                            text:
+                                                                '${plcMrkTb[index].street}, ${plcMrkTb[index].locality}, ${plcMrkTb[index].administrativeArea} ${plcMrkTb[index].postalCode}');
                                                     Clipboard.setData(data);
                                                   },
-                                                  icon: const Icon(
-                                                      Icons.share)),
+                                                  icon:
+                                                      const Icon(Icons.share)),
                                               Text('Share'),
                                             ],
                                           ),
@@ -448,7 +542,11 @@ class _LocationsPageState extends State<LocationsPage> {
                                                             ?.toInt(),
                                                         dbHelper);
                                                     _queryAll(dbHelper);
-                                                    Navigator.pushReplacementNamed(context,'/LocationsPage', arguments: null);
+                                                    Navigator
+                                                        .pushReplacementNamed(
+                                                            context,
+                                                            '/LocationsPage',
+                                                            arguments: null);
                                                   },
                                                   icon: const Icon(
                                                       Icons.delete_outline)),
@@ -507,33 +605,63 @@ class _SettingsPageState extends State<SettingsPage> {
 class CustomAppBar extends AppBar {
   CustomAppBar()
       : super(
+          leading: Builder(
+            builder: (BuildContext context) {
+              return IconButton(
+                icon: const Icon(
+                  Icons.menu,
+                  color: Colors.white,
+                ),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
+                tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
+              );
+            },
+          ),
           backgroundColor: mainAppColor,
-          title: Text(
-            "SquidApp",
+          title: Row(
+            children: [
+              Icon(
+                Icons.sports_motorsports_outlined,
+                size: 48,
+                color: Colors.white,
+              ),
+              Padding(
+                padding: EdgeInsets.all(2),
+                child: Text(
+                  "SquidApp",
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           ),
         );
 /*
-iconTheme: IconThemeData(
-color: Colors.black, //change your color here
-),
-backgroundColor: Colors.white,
-title: Text(
-"this is app bar",
-style: TextStyle(color: Color(Constant.colorBlack)),
-),
-elevation: 0.0,
-automaticallyImplyLeading: false,
-actions: <Widget>[
-IconButton(
-icon: Icon(Icons.notifications),
-onPressed: () => null,
-),
-IconButton(
-icon: Icon(Icons.person),
-onPressed: () => null,
-),
-],
-*/
+        iconTheme: IconThemeData(
+        color: Colors.black, //change your color here
+        ),
+        backgroundColor: Colors.white,
+        title: Text(
+        "this is app bar",
+        style: TextStyle(color: Color(Constant.colorBlack)),
+        ),
+        elevation: 0.0,
+        automaticallyImplyLeading: false,
+        actions: <Widget>[
+        IconButton(
+        icon: Icon(Icons.notifications),
+        onPressed: () => null,
+        ),
+        IconButton(
+        icon: Icon(Icons.person),
+        onPressed: () => null,
+        ),
+        ],
+        */
 }
 
 class NavBar extends StatelessWidget {
@@ -550,12 +678,22 @@ class NavBar extends StatelessWidget {
                   padding: EdgeInsets.all(30),
                   color: mainAppColor,
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: <Widget>[
-                      Image.network(
-                        'https://cdn.icon-icons.com/icons2/2108/PNG/512/flutter_icon_130936.png',
-                        fit: BoxFit.cover,
-                        width: 90,
-                        height: 90,
+                      Icon(
+                        Icons.sports_motorsports_outlined,
+                        size: 64,
+                        color: Colors.white,
+                      ),
+                      Padding(
+                        padding: EdgeInsets.all(2),
+                        child: Text(
+                          "SquidApp",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ],
                   ),
@@ -699,6 +837,7 @@ class weatherApp extends StatefulWidget {
 class _weatherAppState extends State<weatherApp> {
   late Future<Weather> futureWeather;
   var notificationCounter = 1;
+
   @override
   void initState() {
     super.initState();
@@ -716,14 +855,15 @@ class _weatherAppState extends State<weatherApp> {
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               if (snapshot.data!.alerts.alerts.isNotEmpty) {
-
                 snapshot.data!.alerts.alerts.forEach((element) {
-                  sendNotification(element.event, element.areas, notificationCounter++);
+                  sendNotification(
+                      element.event, element.areas, notificationCounter++);
                 });
               }
               // Removes all previous hour data before current time.
               snapshot.data!.forecast.forecastday[0].hour.removeWhere(
-                  (element) => DateFormat('yyyy-MM-dd hh:mm').parse(element.time)
+                  (element) => DateFormat('yyyy-MM-dd hh:mm')
+                      .parse(element.time)
                       .isBefore(DateTime.now().subtract(Duration(hours: 1))));
               final PageController controller = PageController();
               return PageView(
@@ -738,7 +878,6 @@ class _weatherAppState extends State<weatherApp> {
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            SizedBox(height: 4),
                             Text(
                               snapshot.data!.location.name,
                               style: TextStyle(
@@ -755,10 +894,9 @@ class _weatherAppState extends State<weatherApp> {
                             Image.network(
                               '${snapshot.data!.current.condition.icon}',
                               fit: BoxFit.cover,
-                              width: 96,
-                              height: 96,
+                              width: 84,
+                              height: 84,
                             ),
-                            SizedBox(height: 8),
                             Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -780,7 +918,6 @@ class _weatherAppState extends State<weatherApp> {
                                 ),
                               ],
                             ),
-                            SizedBox(height: 8),
                             IntrinsicHeight(
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -800,7 +937,6 @@ class _weatherAppState extends State<weatherApp> {
                                 ],
                               ),
                             ),
-                            SizedBox(height: 8),
                           ],
                         ),
                       ),
@@ -832,7 +968,7 @@ class _weatherAppState extends State<weatherApp> {
                             DateTime date = DateTime.parse(snapshot.data!
                                 .forecast.forecastday[0].hour[index].time);
                             return Container(
-                              padding: EdgeInsets.all(10),
+                              padding: EdgeInsets.only(left: 8, right: 8),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -1059,11 +1195,10 @@ class _weatherAppState extends State<weatherApp> {
                                       fontWeight: FontWeight.bold),
                                 ),
                                 subtitle: Text(
-                                      "Event: ${snapshot.data!.alerts.alerts[index].event}"
-                                      "\nArea:${snapshot.data!.alerts.alerts[index].areas}"
-                                      "\nUrgency: ${snapshot.data!.alerts.alerts[index].urgency}"
-                                      "\nDescription: \t ${snapshot.data!.alerts.alerts[index].desc}"
-                                    ,
+                                  "Event: ${snapshot.data!.alerts.alerts[index].event}"
+                                  "\nArea:${snapshot.data!.alerts.alerts[index].areas}"
+                                  "\nUrgency: ${snapshot.data!.alerts.alerts[index].urgency}"
+                                  "\nDescription: \t ${snapshot.data!.alerts.alerts[index].desc}",
                                   style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold),

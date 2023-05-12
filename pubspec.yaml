@@ -40,6 +40,7 @@ dependencies:
   awesome_notifications: ^0.7.4+1
   google_maps_flutter: ^2.2.6
   geolocator: ^9.0.2
+  android_intent_plus: ^4.0.0
   sqflite:
 
   # The following adds the Cupertino Icons font to your application.

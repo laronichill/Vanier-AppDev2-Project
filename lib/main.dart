@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ffi';
 import 'dart:io';
 
 import 'package:awesome_notifications/awesome_notifications.dart';
@@ -19,6 +18,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import './class/weather.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:android_intent_plus/android_intent.dart';
+import 'package:android_intent_plus/flag.dart';
+
 
 // MAIN CONFIG
 var mainAppColor = Colors.teal;
@@ -78,6 +80,14 @@ void _insert(latitude, longitude, title, dbHelper) async {
   Markers markers = Markers.fromMap(row);
   final id = await dbHelper.insert(markers);
 }
+void openLocationSetting() async {
+  if (Platform.isAndroid) {
+    final AndroidIntent intent = AndroidIntent(
+      action: 'android.settings.LOCATION_SOURCE_SETTINGS',
+    );
+    await intent.launch();
+  }
+}
 
 void _queryAll(dbHelper) async {
   final allRows = await dbHelper.queryAllRows();
@@ -127,7 +137,7 @@ void sendNotification(var title, var body, var id) {
       channelKey: 'basic_channel',
       title: '${title}',
       body: '${body}',
-      category: NotificationCategory.Alarm,
+
     ),
   );
 }
@@ -141,9 +151,9 @@ Future<void> main() async {
       null,
       [
         NotificationChannel(
-          channelGroupKey: 'high_importance_channel',
-          channelKey: 'high_importance_channel',
-          channelName: 'Basic notifications',
+          channelGroupKey: 'basic_channel_group',
+          channelKey: 'basic_channel',
+          channelName: 'Weather Alerts Notifications',
           channelDescription: 'Notification channel for weather alerts',
           defaultColor: Color(0xFF9D50DD),
           ledColor: Colors.white,
@@ -151,7 +161,6 @@ Future<void> main() async {
           channelShowBadge: true,
           onlyAlertOnce: true,
           playSound: false,
-          criticalAlerts: true,
           defaultPrivacy: NotificationPrivacy.Private,
         )
       ],
@@ -168,6 +177,15 @@ Future<void> main() async {
 
 class TheSquidApp extends StatelessWidget {
   const TheSquidApp({Key? key}) : super(key: key);
+
+  @override
+  void initState() {
+    AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
+      if (!isAllowed) {
+        AwesomeNotifications().requestPermissionToSendNotifications();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -207,6 +225,7 @@ class _MainMenuPageState extends State<MainMenuPage> {
 
   @override
   void initState() {
+    openLocationSetting();
     AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
       if (!isAllowed) {
         AwesomeNotifications().requestPermissionToSendNotifications();
@@ -483,8 +502,10 @@ class _LocationsPageState extends State<LocationsPage> {
                                                               child: Text('OK'),
                                                               onPressed: () {
                                                                 if (locationNameController.text.isNotEmpty) {
-                                                                  _update(markersTable[index].id, markersTable[index].latitude, markersTable[index].longitude, locationNameController.text, dbHelper);
-                                                                  Navigator.pop(context);
+                                                                  setState(() {
+                                                                    _update(markersTable[index].id, markersTable[index].latitude, markersTable[index].longitude, locationNameController.text, dbHelper);
+                                                                  });
+                                                                  Navigator.popUntil(context, ModalRoute.withName('/LocationsPage'));
                                                                 } else {
                                                                   SnackBar(
                                                                     content: Text('No name given!'),
@@ -795,7 +816,7 @@ class logout extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      sendNotification("TYYY", "<333333", -1);
+                      sendNotification("TYYY", "333333", -1);
                     },
                     child: Text("No"),
                   ),

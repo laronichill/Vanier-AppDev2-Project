@@ -1,7 +1,3 @@
-import 'dart:ffi';
-
-import 'package:decimal/decimal.dart';
-
 class Location {
   final String name;
   final String region;

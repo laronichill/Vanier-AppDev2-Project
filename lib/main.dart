@@ -21,6 +21,9 @@ import 'package:geocoding/geocoding.dart';
 import 'package:android_intent_plus/android_intent.dart';
 import 'package:android_intent_plus/flag.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/scheduler.dart';
+import './constants.dart';
+
 
 // MAIN CONFIG
 var mainAppColor = Colors.teal;
@@ -209,8 +212,8 @@ class TheSquidApp extends StatelessWidget {
         '/LocationsPage': (context) => LocationsPage(),
         '/WeatherPage': (context) => weatherApp(),
         /*'/CalendarPage': (context) => CalendarPage(),
-      '/MaintenancePage': (context) => MaintenancePage(),*/
-        '/SettingsPage': (context) => SettingsPage(),
+      '/MaintenancePage': (context) => MaintenancePage(),
+        '/SettingsPage': (context) => SettingsPage(),*/
         '/Exit': (context) => logout(),
       },
     );
@@ -647,6 +650,21 @@ class SettingsPage extends StatefulWidget {
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
+bool useMaterial3 = true;
+ThemeMode themeMode = ThemeMode.system;
+
+bool get useLightMode {
+  switch (themeMode) {
+    case ThemeMode.system:
+      return SchedulerBinding.instance.window.platformBrightness ==
+          Brightness.light;
+    case ThemeMode.light:
+      return true;
+    case ThemeMode.dark:
+      return false;
+  }
+}
+
 class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
@@ -654,13 +672,66 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: CustomAppBar(),
       body: Center(
         child: Column(
-          children: [],
+          children: [
+            /*_ColorSeedButton(colorSelected: ColorSeed.values.first,),*/
+          ],
         ),
       ),
       drawer: NavBar(),
     );
   }
 }
+
+/*class _ColorSeedButton extends StatelessWidget {
+  const _ColorSeedButton({
+    required this.colorSelected,
+  });
+
+  final ColorSeed colorSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton(
+      icon: Icon(
+        Icons.palette_outlined,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+      tooltip: 'Select a seed color',
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      itemBuilder: (context) {
+        return List.generate(ColorSeed.values.length, (index) {
+          ColorSeed currentColor = ColorSeed.values[index];
+          return PopupMenuItem(
+            value: index,
+            enabled: currentColor != colorSelected,
+            child: Wrap(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: Icon(
+                    currentColor == colorSelected
+                        ? Icons.color_lens
+                        : Icons.color_lens_outlined,
+                    color: currentColor.color,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 20),
+                  child: Text(currentColor.label),
+                ),
+              ],
+            ),
+          );
+        });
+      },
+      onSelected: (int value){
+
+      },
+    );
+  }
+
+
+}*/
 
 class CustomAppBar extends AppBar {
   CustomAppBar()
@@ -800,13 +871,13 @@ class NavBar extends StatelessWidget {
                       child: Column(
                     children: <Widget>[
                       CustomDivider(),
-                      ListTile(
+                     /* ListTile(
                         leading: Icon(Icons.settings),
                         title: Text('Settings'),
                         onTap: () => Navigator.pushReplacementNamed(
                             context, '/SettingsPage',
                             arguments: null),
-                      ),
+                      ),*/
                       ListTile(
                         title: Text('Exit'),
                         leading: Icon(Icons.logout),

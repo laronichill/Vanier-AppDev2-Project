@@ -20,12 +20,14 @@ import './class/weather.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:android_intent_plus/android_intent.dart';
 import 'package:android_intent_plus/flag.dart';
-
+import 'package:permission_handler/permission_handler.dart';
 
 // MAIN CONFIG
 var mainAppColor = Colors.teal;
 var mainDividerColor = Colors.grey[300];
 var mainColorScheme = Color.fromARGB(255, 0, 120, 120);
+var mainTextColor = Colors.white;
+
 // Lists for MainMenuPage() and LocationsPage()
 List<Markers> markersTable = [];
 List<Placemark> plcMrkTb = [];
@@ -50,7 +52,6 @@ Future<Position> _determinePosition() async {
       return Future.error('Location permissions are denied');
     }
   }
-
   if (permission == LocationPermission.deniedForever) {
     return Future.error(
         'Location permissions are permanently denied, we cannot request permissions.');
@@ -80,13 +81,20 @@ void _insert(latitude, longitude, title, dbHelper) async {
   Markers markers = Markers.fromMap(row);
   final id = await dbHelper.insert(markers);
 }
+
 void openLocationSetting() async {
+  if (Permission.location.status == true) {
+    // Returns true if granted
+  } else {
+    Permission.location.request(); // ask for the permission
+  }
+  /*
   if (Platform.isAndroid) {
     final AndroidIntent intent = AndroidIntent(
       action: 'android.settings.LOCATION_SOURCE_SETTINGS',
     );
     await intent.launch();
-  }
+  }*/
 }
 
 void _queryAll(dbHelper) async {
@@ -137,7 +145,6 @@ void sendNotification(var title, var body, var id) {
       channelKey: 'basic_channel',
       title: '${title}',
       body: '${body}',
-
     ),
   );
 }
@@ -225,7 +232,6 @@ class _MainMenuPageState extends State<MainMenuPage> {
 
   @override
   void initState() {
-    openLocationSetting();
     AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
       if (!isAllowed) {
         AwesomeNotifications().requestPermissionToSendNotifications();
@@ -300,6 +306,7 @@ class _MainMenuPageState extends State<MainMenuPage> {
       drawer: NavBar(),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          openLocationSetting();
           setState(() {
             _goToCurrentLocation();
           });
@@ -380,6 +387,7 @@ class LocationsPage extends StatefulWidget {
 class _LocationsPageState extends State<LocationsPage> {
   final dbHelper = DatabaseHelper.instance;
   TextEditingController locationNameController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     _queryAll(dbHelper);
@@ -397,9 +405,14 @@ class _LocationsPageState extends State<LocationsPage> {
                   return Card(
                     child: ListTile(
                         leading: Icon(Icons.notifications),
-                        title: Text('${markersTable[index].title}'),
+                        title: Text(
+                          '${markersTable[index].title}',
+                          style: TextStyle(color: mainTextColor),
+                        ),
                         subtitle: Text(
-                            '${plcMrkTb[index].street}, ${plcMrkTb[index].locality}, ${plcMrkTb[index].administrativeArea} ${plcMrkTb[index].postalCode}'),
+                          '${plcMrkTb[index].street}, ${plcMrkTb[index].locality}, ${plcMrkTb[index].administrativeArea} ${plcMrkTb[index].postalCode}',
+                          style: TextStyle(color: mainTextColor),
+                        ),
                         onTap: () {
                           showModalBottomSheet<void>(
                               context: context,
@@ -476,39 +489,66 @@ class _LocationsPageState extends State<LocationsPage> {
                                               20.0, 30.0, 20.0, 20.0),
                                           child: Column(
                                             mainAxisAlignment:
-                                            MainAxisAlignment.start,
+                                                MainAxisAlignment.start,
                                             children: [
                                               IconButton(
                                                   onPressed: () async {
                                                     return showDialog(
                                                       context: context,
-                                                      builder: (BuildContext context) {
-                                                        locationNameController.text = markersTable[index].title.toString();
+                                                      builder: (BuildContext
+                                                          context) {
+                                                        locationNameController
+                                                                .text =
+                                                            markersTable[index]
+                                                                .title
+                                                                .toString();
                                                         return AlertDialog(
-                                                          title: Text('Update Location Name'),
+                                                          title: Text(
+                                                              'Update Location Name'),
                                                           content: TextField(
-                                                            decoration: InputDecoration(hintText: "Name Of Location"),
-
-                                                            controller: locationNameController,
+                                                            decoration:
+                                                                InputDecoration(
+                                                                    hintText:
+                                                                        "Name Of Location"),
+                                                            controller:
+                                                                locationNameController,
                                                           ),
                                                           actions: <Widget>[
                                                             ElevatedButton(
-                                                              child: Text('CANCEL'),
+                                                              child: Text(
+                                                                  'CANCEL'),
                                                               onPressed: () {
-                                                                Navigator.pop(context);
+                                                                Navigator.pop(
+                                                                    context);
                                                               },
                                                             ),
                                                             ElevatedButton(
                                                               child: Text('OK'),
                                                               onPressed: () {
-                                                                if (locationNameController.text.isNotEmpty) {
+                                                                if (locationNameController
+                                                                    .text
+                                                                    .isNotEmpty) {
                                                                   setState(() {
-                                                                    _update(markersTable[index].id, markersTable[index].latitude, markersTable[index].longitude, locationNameController.text, dbHelper);
+                                                                    _update(
+                                                                        markersTable[index]
+                                                                            .id,
+                                                                        markersTable[index]
+                                                                            .latitude,
+                                                                        markersTable[index]
+                                                                            .longitude,
+                                                                        locationNameController
+                                                                            .text,
+                                                                        dbHelper);
                                                                   });
-                                                                  Navigator.popUntil(context, ModalRoute.withName('/LocationsPage'));
+                                                                  Navigator.popUntil(
+                                                                      context,
+                                                                      ModalRoute
+                                                                          .withName(
+                                                                              '/LocationsPage'));
                                                                 } else {
                                                                   SnackBar(
-                                                                    content: Text('No name given!'),
+                                                                    content: Text(
+                                                                        'No name given!'),
                                                                   );
                                                                 }
                                                               },
@@ -519,8 +559,8 @@ class _LocationsPageState extends State<LocationsPage> {
                                                     );
                                                   },
                                                   icon:
-                                                  const Icon(Icons.update)),
-                                              Text('Update'),
+                                                      const Icon(Icons.update)),
+                                              Text('Update', style: TextStyle(color: mainTextColor),),
                                             ],
                                           ),
                                         ),
@@ -539,9 +579,8 @@ class _LocationsPageState extends State<LocationsPage> {
                                                                 '${plcMrkTb[index].street}, ${plcMrkTb[index].locality}, ${plcMrkTb[index].administrativeArea} ${plcMrkTb[index].postalCode}');
                                                     Clipboard.setData(data);
                                                   },
-                                                  icon:
-                                                      const Icon(Icons.share)),
-                                              Text('Share'),
+                                                  icon: const Icon(Icons.share)),
+                                              Text('Share', style: TextStyle(color: mainTextColor),),
                                             ],
                                           ),
                                         ),
@@ -615,9 +654,7 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: CustomAppBar(),
       body: Center(
         child: Column(
-          children: [
-
-          ],
+          children: [],
         ),
       ),
       drawer: NavBar(),
@@ -656,7 +693,7 @@ class CustomAppBar extends AppBar {
                 child: Text(
                   "SquidApp",
                   style: TextStyle(
-                      color: Colors.white,
+                      color: mainTextColor,
                       fontSize: 32,
                       fontWeight: FontWeight.bold),
                 ),
@@ -710,13 +747,12 @@ class NavBar extends StatelessWidget {
                         color: Colors.white,
                       ),
                       Text(
-                          "SquidApp",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold),
-                        ),
-
+                        "SquidApp",
+                        style: TextStyle(
+                            color: mainTextColor,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                 ),
